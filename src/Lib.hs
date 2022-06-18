@@ -12,30 +12,25 @@ someFunc =
   print $ Enthusiasm.do
     seti (-101) H
 
+    let loop = jmpa 1
     addi 1 C
 
     addr C H F
     jmpn 2 F
     halt
 
-    seti 15 D
-    modr C D F
-    jmpn 3 F
-    says "FizzBuzz\n"
-    jmpa 1
+    let
+      sayDivides message divisor = Enthusiasm.do
+        seti divisor D
+        modr C D F
+        jmpn 3 F
+        says $ message <> "\n"
+        loop
 
-    seti 3 D
-    modr C D F
-    jmpn 3 F
-    says "Fizz\n"
-    jmpa 1
-
-    seti 5 D
-    modr C D F
-    jmpn 3 F
-    says "Buzz\n"
-    jmpa 1
+    "FizzBuzz" `sayDivides` 15
+    "Fizz" `sayDivides` 3
+    "Buzz" `sayDivides` 5
 
     sayr C
     says "\n"
-    jmpa 1
+    loop
