@@ -1,3 +1,6 @@
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE LambdaCase #-}
+
 module Enthusiasm
     ( Reg(..)
     , seti
@@ -10,12 +13,14 @@ module Enthusiasm
     , sayr
     , halt
     , (>>)
+    , execute
     ) where
 
 import Prelude hiding ((>>))
 
-import Data.Text (Text)
-import qualified Data.Map.Strict as M 
+import Control.Monad.IO.Class
+import Data.Text (Text, unpack)
+import qualified Data.Map.Strict as M
 
 data Reg
   = A
@@ -26,7 +31,7 @@ data Reg
   | F
   | G
   | H
-  deriving Show
+  deriving (Show, Ord, Eq)
 
 data Inst
   = Seti Int Reg
@@ -62,3 +67,52 @@ modr = three Modr
 says = one Says
 sayr = one Sayr
 halt = Code $ M.singleton 0 Halt
+
+data ProgState
+  = ProgState {
+    ip :: Int
+  , regs :: M.Map Reg Int
+  , code :: Code
+  }
+
+mkInitial = ProgState 0 M.empty
+
+execute :: MonadIO m => Code -> m ()
+execute = tryExecuteAll . mkInitial
+
+tryExecuteAll ps@(ProgState {..}) =
+  case M.lookup ip $ uncode code of
+    Just Halt -> pure ()
+    Nothing -> pure ()
+    Just inst -> do
+      s <- newState ps inst
+      tryExecuteAll s
+
+newState ps@(ProgState {..}) = \case
+  Seti i o -> set o i
+  Addi i o -> mut o (+ i)
+  Addr a b o -> set o (get a + get b)
+  Jmpn off t -> jumpIf (get t /= 0) off
+  Jmpa addr -> pure $ ps { ip = addr }
+  Modr n d o -> set o (get n `mod` get d)
+  Says t -> do
+    liftIO $ putStr $ unpack t
+    next ps
+  Sayr r -> do
+    liftIO $ putStr $ show $ get r
+    next ps
+  Halt -> pure ps
+
+  where
+    get = flip (M.findWithDefault 0) regs
+
+    set r v = next $ ps { regs = M.insert r v regs }
+
+    mut r f = set r $ f $ get r
+
+    next s = pure $ s { ip = ip + 1 }
+
+    jumpIf c off =
+      if c
+      then pure $ ps { ip = ip + off }
+      else next ps

@@ -9,7 +9,7 @@ import Enthusiasm
 
 someFunc :: IO ()
 someFunc =
-  print $ Enthusiasm.do
+  execute $ Enthusiasm.do
     seti (-101) H
 
     let loop = jmpa 1
