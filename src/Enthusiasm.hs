@@ -21,6 +21,9 @@ import Prelude hiding ((>>))
 import Control.Monad.IO.Class
 import Data.Text (Text, unpack)
 import qualified Data.Map.Strict as M
+import qualified Data.Sequence.NonEmpty as NES
+import qualified Data.Vector as V
+import Data.Foldable (toList)
 
 data Reg
   = A
@@ -45,18 +48,16 @@ data Inst
   | Halt
   deriving Show
 
-newtype Code = Code { uncode :: M.Map Int Inst }
+newtype Code = Code { uncode :: NES.NESeq Inst }
   deriving Show
 
 (>>) :: Code -> Code -> Code
 Code left >> Code right =
-  case M.lookupMax left of
-    Just (n, _) -> Code $ M.union left $ M.mapKeys (+ (n + 1)) right
-    Nothing -> error "This should be impossible, famous last words, haha hee"
+  Code $ left NES.>< right
 
-one inst a = Code $ M.singleton 0 $ inst a
-two inst a b = Code $ M.singleton 0 $ inst a b
-three inst a b c = Code $ M.singleton 0 $ inst a b c
+one inst a = Code $ NES.singleton $ inst a
+two inst a b = Code $ NES.singleton $ inst a b
+three inst a b c = Code $ NES.singleton $ inst a b c
 
 seti = two Seti
 addi = two Addi
@@ -66,22 +67,22 @@ jmpa = one Jmpa
 modr = three Modr
 says = one Says
 sayr = one Sayr
-halt = Code $ M.singleton 0 Halt
+halt = Code $ NES.singleton Halt
 
 data ProgState
   = ProgState {
     ip :: Int
   , regs :: M.Map Reg Int
-  , code :: Code
+  , code :: V.Vector Inst
   }
 
 mkInitial = ProgState 0 M.empty
 
 execute :: MonadIO m => Code -> m ()
-execute = tryExecuteAll . mkInitial
+execute = tryExecuteAll . mkInitial . V.fromList . toList . uncode
 
 tryExecuteAll ps@(ProgState {..}) =
-  case M.lookup ip $ uncode code of
+  case code V.!? ip of
     Just Halt -> pure ()
     Nothing -> pure ()
     Just inst -> do
