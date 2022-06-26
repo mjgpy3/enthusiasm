@@ -62,9 +62,7 @@ g = RVal G
 h = RVal H
 
 data Inst
-  = Seti Int Reg
-  | Addi Int Reg
-  | Addr Val Val Reg
+  = Addr Val Val Reg
   | Jmpn Int Reg
   | Jmpa Int
   | Modr Val Val Reg
@@ -84,8 +82,8 @@ one inst a = Code $ NES.singleton $ inst a
 two inst a b = Code $ NES.singleton $ inst a b
 three inst a b c = Code $ NES.singleton $ inst a b c
 
-seti = two Seti
-addi = two Addi
+seti i o = Code $ NES.singleton $ Addr 0 (NVal i) o
+addi i o = Code $ NES.singleton $ Addr i (RVal o) o
 addr = three Addr
 jmpn = two Jmpn
 jmpa = one Jmpa
@@ -115,8 +113,6 @@ tryExecuteAll ps@(ProgState {..}) =
       tryExecuteAll s
 
 newState ps@(ProgState {..}) = \case
-  Seti i o -> set o i
-  Addi i o -> mut o (+ i)
   Addr a b o -> set o (get a + get b)
   Jmpn off t -> jumpIf (getR t /= 0) off
   Jmpa addr -> pure $ ps { ip = addr }
