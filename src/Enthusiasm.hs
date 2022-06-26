@@ -14,6 +14,14 @@ module Enthusiasm
     , halt
     , (>>)
     , execute
+    , a
+    , b
+    , c
+    , d
+    , e
+    , f
+    , g
+    , h
     ) where
 
 import Prelude hiding ((>>))
@@ -36,13 +44,30 @@ data Reg
   | H
   deriving (Show, Ord, Eq)
 
+data Val
+  = RVal Reg
+  | NVal Int
+  deriving (Show)
+
+instance Num Val where
+  fromInteger = NVal . fromInteger
+
+a = RVal A
+b = RVal B
+c = RVal C
+d = RVal D
+e = RVal E
+f = RVal F
+g = RVal G
+h = RVal H
+
 data Inst
   = Seti Int Reg
   | Addi Int Reg
-  | Addr Reg Reg Reg
+  | Addr Val Val Reg
   | Jmpn Int Reg
   | Jmpa Int
-  | Modr Reg Reg Reg
+  | Modr Val Val Reg
   | Says Text
   | Sayr Reg
   | Halt
@@ -93,23 +118,26 @@ newState ps@(ProgState {..}) = \case
   Seti i o -> set o i
   Addi i o -> mut o (+ i)
   Addr a b o -> set o (get a + get b)
-  Jmpn off t -> jumpIf (get t /= 0) off
+  Jmpn off t -> jumpIf (getR t /= 0) off
   Jmpa addr -> pure $ ps { ip = addr }
   Modr n d o -> set o (get n `mod` get d)
   Says t -> do
     liftIO $ putStr $ unpack t
     next ps
   Sayr r -> do
-    liftIO $ putStr $ show $ get r
+    liftIO $ putStr $ show $ getR r
     next ps
   Halt -> pure ps
 
   where
-    get = flip (M.findWithDefault 0) regs
+    getR = flip (M.findWithDefault 0) regs
+
+    get (RVal r) = getR r
+    get (NVal n) = n
 
     set r v = next $ ps { regs = M.insert r v regs }
 
-    mut r f = set r $ f $ get r
+    mut r f = set r $ f $ getR r
 
     next s = pure $ s { ip = ip + 1 }
 

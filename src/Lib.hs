@@ -15,14 +15,14 @@ someFunc =
     let loop = jmpa 1
     addi 1 C
 
-    addr C H F
+    addr c h F
     jmpn 2 F
     halt
 
     let
       sayDivides message divisor = Enthusiasm.do
         seti divisor D
-        modr C D F
+        modr c d F
         jmpn 3 F
         says $ message <> "\n"
         loop
