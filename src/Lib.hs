@@ -10,19 +10,16 @@ import Enthusiasm
 someFunc :: IO ()
 someFunc =
   execute $ Enthusiasm.do
-    seti (-101) H
-
-    let loop = jmpa 1
+    let loop = jmpa 0
     addi 1 C
 
-    addr c h F
+    addr c (-101) F
     jmpn 2 F
     halt
 
     let
       sayDivides message divisor = Enthusiasm.do
-        seti divisor D
-        modr c d F
+        modr c divisor F
         jmpn 3 F
         says $ message <> "\n"
         loop

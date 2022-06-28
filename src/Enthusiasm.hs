@@ -60,6 +60,7 @@ data Val
 
 instance Num Val where
   fromInteger = NVal . fromInteger
+  negate (NVal n) = NVal $ negate n
 
 data Inst
   = Seti Int Reg
